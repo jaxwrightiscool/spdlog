@@ -384,12 +384,11 @@ SPDLOG_INLINE void sleep_for_millis(unsigned int milliseconds) SPDLOG_NOEXCEPT
 
 // wchar support for windows file names (SPDLOG_WCHAR_FILENAMES must be defined)
 #if defined(_WIN32) && defined(SPDLOG_WCHAR_FILENAMES)
-SPDLOG_INLINE std::string filename_to_str(const filename_t &filename)
-{
-    memory_buf_t buf;
-    wstr_to_utf8buf(filename, buf);
-    return SPDLOG_BUF_TO_STRING(buf);
-}
+#    ifdef SPDLOG_USE_STD_FORMAT
+    return buf;
+#    else
+    return fmt::to_string(buf);
+#    endif
 #else
 SPDLOG_INLINE std::string filename_to_str(const filename_t &filename)
 {
