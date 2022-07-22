@@ -369,17 +369,11 @@ protected:
         {
             memory_buf_t buf;
 #ifdef SPDLOG_USE_STD_FORMAT
-            fmt_lib::vformat_to(std::back_inserter(buf), fmt, fmt_lib::make_format_args(std::forward<Args>(args)...));
+            memory_buf_t buf = std::vformat(fmt, std::make_format_args(std::forward<Args>(args)...));
 #else
-            // seems that fmt::detail::vformat_to(buf, ...) is ~20ns faster than fmt::vformat_to(std::back_inserter(buf),..)
+            memory_buf_t buf;
             fmt::detail::vformat_to(buf, fmt, fmt::make_format_args(std::forward<Args>(args)...));
 #endif
-
-            details::log_msg log_msg(loc, name_, lvl, string_view_t(buf.data(), buf.size()));
-            log_it_(log_msg, log_enabled, traceback_enabled);
-        }
-        SPDLOG_LOGGER_CATCH(loc)
-    }
 
 #ifdef SPDLOG_WCHAR_TO_UTF8_SUPPORT
     template<typename... Args>
@@ -410,25 +404,13 @@ protected:
         SPDLOG_LOGGER_CATCH(loc)
     }
 
-    // T can be statically converted to wstring_view, and no formatting needed.
-    template<class T, typename std::enable_if<std::is_convertible<const T &, spdlog::wstring_view_t>::value, int>::type = 0>
-    void log_(source_loc loc, level::level_enum lvl, const T &msg)
-    {
-        bool log_enabled = should_log(lvl);
-        bool traceback_enabled = tracer_.enabled();
-        if (!log_enabled && !traceback_enabled)
-        {
-            return;
-        }
-        SPDLOG_TRY
-        {
-            memory_buf_t buf;
-            details::os::wstr_to_utf8buf(msg, buf);
-            details::log_msg log_msg(loc, name_, lvl, string_view_t(buf.data(), buf.size()));
-            log_it_(log_msg, log_enabled, traceback_enabled);
-        }
-        SPDLOG_LOGGER_CATCH(loc)
-    }
+                ;
+#    ifdef SPDLOG_USE_STD_FORMAT
+            wmemory_buf_t wbuf = std::vformat(fmt, std::make_wformat_args(std::forward<Args>(args)...));
+#    else
+            wmemory_buf_t wbuf;
+            fmt::detail::vformat_to(wbuf, fmt, fmt::make_format_args<fmt::wformat_context>(std::forward<Args>(args)...));
+#    endif
 
 #endif // SPDLOG_WCHAR_TO_UTF8_SUPPORT
 
